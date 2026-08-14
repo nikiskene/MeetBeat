@@ -5,8 +5,6 @@ export type OnboardingStepId =
   | 'location'
   | 'bio'
   | 'photo'
-  | 'discovery'
-  | 'mood'
   | 'done';
 
 export const ONBOARDING_STEPS: { id: OnboardingStepId; label: string }[] = [
@@ -16,8 +14,6 @@ export const ONBOARDING_STEPS: { id: OnboardingStepId; label: string }[] = [
   { id: 'location', label: 'Location' },
   { id: 'bio', label: 'Your bio' },
   { id: 'photo', label: 'Photo' },
-  { id: 'discovery', label: 'Preferences' },
-  { id: 'mood', label: 'First BEAT' },
   { id: 'done', label: 'Ready' },
 ];
 
@@ -65,10 +61,10 @@ export const ONBOARDING_COPY = {
     body: 'Choose your mood and BEAT will find people on the same wavelength. You can change it anytime — it resets after 24 hours.',
   },
   done: {
-    eyebrow: 'You’re ready',
-    title: 'Your profile is set up.',
-    body: 'Start exploring people nearby, or take a moment to refine your profile.',
-    explore: 'Start exploring',
+    eyebrow: 'Profile complete',
+    title: 'Now let’s understand how you connect.',
+    body: 'Your connection interview is next. Ten quick questions help BEAT rank people who may feel more natural to meet.',
+    explore: 'Start connection interview',
     profile: 'Edit my profile',
   },
 } as const;

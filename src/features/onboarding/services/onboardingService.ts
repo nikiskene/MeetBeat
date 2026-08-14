@@ -3,6 +3,7 @@ import type { Profile } from '../../profile/types/profile.types';
 import type { DiscoverySettings } from '../../settings/types/settings.types';
 import {
   DEFAULT_MOOD_WHEEL_OPTIONS,
+  normalizeMoodWheelOptions,
   type MoodWheelOption,
 } from '../../settings/constants/moodWheelOptions';
 
@@ -16,11 +17,8 @@ export function isProfileComplete(profile: Profile | null): boolean {
   const hasName = Boolean(profile.display_name?.trim());
   const hasBirthdate = Boolean(profile.birthdate);
   const hasGender = profile.gender !== undefined && profile.gender !== null;
-  const hasLocation =
-    Boolean(profile.city) &&
-    profile.latitude != null &&
-    profile.longitude != null;
-  return hasName && hasBirthdate && hasGender && hasLocation;
+  const hasBio = (profile.bio?.trim().length ?? 0) >= 40;
+  return hasName && hasBirthdate && hasGender && hasBio;
 }
 
 export async function fetchOnboardingProfile(
@@ -63,7 +61,9 @@ export async function fetchOnboardingDiscovery(
     min_age: data?.min_age ?? 25,
     max_age: data?.max_age ?? 55,
     max_distance_km: data?.max_distance_km ?? 50,
-    mood_wheel_options: DEFAULT_MOOD_WHEEL_OPTIONS,
+    mood_wheel_options: normalizeMoodWheelOptions(
+      (data?.mood_wheel_options as string[] | null) ?? DEFAULT_MOOD_WHEEL_OPTIONS,
+    ),
   };
 }
 

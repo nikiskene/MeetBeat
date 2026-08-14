@@ -2,7 +2,7 @@
 
 import { supabase } from '../../../lib/supabase';
 import {
-  DEFAULT_MOOD_WHEEL_OPTIONS,
+  normalizeMoodWheelOptions,
   type MoodWheelOption,
 } from '../constants/moodWheelOptions';
 import type { DiscoverySettings } from '../types/settings.types';
@@ -13,6 +13,15 @@ const DEFAULT_SETTINGS = {
   max_age: 55,
   max_distance_km: 50,
 };
+
+function normalizeInterests(values?: string[] | null): string[] {
+  const aliases: Record<string, string> = {
+    woman: 'woman', women: 'woman', man: 'man', men: 'man',
+    non_binary: 'non_binary', nonbinary: 'non_binary',
+    'non-binary people': 'non_binary',
+  };
+  return Array.from(new Set((values ?? []).map(value => aliases[value.toLowerCase()]).filter(Boolean)));
+}
 
 export async function fetchDiscoverySettings(
   userId: string
@@ -39,14 +48,14 @@ export async function fetchDiscoverySettings(
 
   return {
     user_id: userId,
-    interested_in: discovery?.interested_in ?? DEFAULT_SETTINGS.interested_in,
+    interested_in: normalizeInterests(discovery?.interested_in ?? DEFAULT_SETTINGS.interested_in),
     min_age: discovery?.min_age ?? DEFAULT_SETTINGS.min_age,
     max_age: discovery?.max_age ?? DEFAULT_SETTINGS.max_age,
     max_distance_km:
       discovery?.max_distance_km ?? DEFAULT_SETTINGS.max_distance_km,
-    mood_wheel_options:
-      (profile?.mood_wheel_options as MoodWheelOption[] | null) ??
-      DEFAULT_MOOD_WHEEL_OPTIONS,
+    mood_wheel_options: normalizeMoodWheelOptions(
+      profile?.mood_wheel_options as MoodWheelOption[] | null,
+    ),
     updated_at: discovery?.updated_at,
   };
 }

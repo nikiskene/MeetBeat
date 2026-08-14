@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
 type Props = {
   label: string;
+  answer: string;
+  description: string;
   spinning: boolean;
   onPrevious: () => void;
   onNext: () => void;
@@ -17,6 +19,8 @@ type Props = {
 
 export function MoodMachine({
   label,
+  answer,
+  description,
   spinning,
   onPrevious,
   onNext,
@@ -46,8 +50,8 @@ export function MoodMachine({
           onWheel={onWheel}
           tabIndex={0}
           role="spinbutton"
-          aria-label="Today's mood"
-          aria-valuetext={label}
+          aria-label="BEAT wheel"
+          aria-valuetext={`${label}. ${description}`}
           onKeyDown={event => {
             if (event.key === 'ArrowDown') {
               event.preventDefault();
@@ -83,6 +87,18 @@ export function MoodMachine({
           <ChevronDown size={20} />
         </button>
       </div>
+
+      {!spinning && (
+        <div className="mt-6 px-2 text-center" aria-live="polite">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#b07d6c]">
+            Today I’d love to…
+          </p>
+          <h2 className="mt-2 text-xl font-medium text-[#171513]">{answer}</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#4b4038]/60">
+            {description}
+          </p>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
         <button

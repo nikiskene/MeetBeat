@@ -11,7 +11,8 @@ type Props = {
 
 export function BioStep({ profile, onChange, onNext, onBack }: Props) {
   const copy = ONBOARDING_COPY.bio;
-  const canProceed = Boolean(profile.bio?.trim());
+  const bioLength = profile.bio?.trim().length ?? 0;
+  const canProceed = bioLength >= 40;
 
   return (
     <StepShell
@@ -34,6 +35,9 @@ export function BioStep({ profile, onChange, onNext, onBack }: Props) {
           rows={5}
           className="w-full resize-none rounded-xl border border-[#e8e0d0] bg-[#f9f6f0] px-4 py-3.5 text-sm text-[#141414] outline-none transition focus:border-[#b07d6c]"
         />
+        <p className={`mt-2 text-xs ${canProceed ? 'text-emerald-700' : 'text-[#333333]/45'}`}>
+          {bioLength}/40 characters minimum
+        </p>
       </div>
     </StepShell>
   );
