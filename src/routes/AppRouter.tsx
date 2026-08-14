@@ -10,6 +10,7 @@ import { legalPageFromHash } from '../features/legal/legalContent';
 import { useLocationRefresh } from '../features/profile/hooks/useLocationRefresh';
 import { useOnboardingCheck } from '../features/onboarding/hooks/useOnboardingCheck';
 import OnboardingPage from '../features/onboarding/pages/OnboardingPage';
+import { ConnectionReadiness } from '../features/connection/components/ConnectionReadiness';
 
 type OnboardingExit = 'today' | 'profile';
 
@@ -18,8 +19,10 @@ export function AppRouter() {
   const [screen, setScreen] = useState<AuthScreen>('landing');
   const [legalPage, setLegalPage] = useState(() => legalPageFromHash(window.location.hash));
   const [onboardingExit, setOnboardingExit] = useState<OnboardingExit>('today');
+  const [readinessKey, setReadinessKey] = useState(0);
   useLocationRefresh(user?.id);
-  const { loading: onboardingLoading, needsOnboarding } = useOnboardingCheck(user?.id);
+  const { loading: onboardingLoading, needsProfile, needsConnectionProfile } =
+    useOnboardingCheck(user?.id, readinessKey);
 
   useEffect(() => {
     const syncHash = () => setLegalPage(legalPageFromHash(window.location.hash));
@@ -50,11 +53,13 @@ export function AppRouter() {
       ) : screen === 'update-password' ? (
         <AuthNavigator screen={screen} onScreenChange={setScreen} />
       ) : user ? (
-        needsOnboarding ? (
+        needsProfile ? (
           <OnboardingPage
-            onComplete={() => setOnboardingExit('today')}
-            onEditProfile={() => setOnboardingExit('profile')}
+            onComplete={() => { setOnboardingExit('today'); setReadinessKey(key => key + 1); }}
+            onEditProfile={() => { setOnboardingExit('profile'); setReadinessKey(key => key + 1); }}
           />
+        ) : needsConnectionProfile ? (
+          <ConnectionReadiness onCompleted={() => setReadinessKey(key => key + 1)} />
         ) : (
           <MainNavigator
             onSignOut={signOut}

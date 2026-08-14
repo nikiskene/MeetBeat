@@ -6,8 +6,6 @@ import { ONBOARDING_STEPS, type OnboardingStepId } from '../constants/onboarding
 import { useOnboarding } from '../hooks/useOnboarding';
 import { OnboardingStepRenderer } from '../components/OnboardingStepRenderer';
 import type { OnboardingProfile } from '../services/onboardingService';
-import type { DiscoverySettings } from '../../settings/types/settings.types';
-import type { MoodWheelOption } from '../../settings/constants/moodWheelOptions';
 
 type Props = { onComplete: () => void; onEditProfile: () => void };
 const STEP_ORDER = ONBOARDING_STEPS.map(s => s.id);
@@ -16,7 +14,7 @@ export default function OnboardingPage({ onComplete, onEditProfile }: Props) {
   const { user } = useAuth();
   const {
     loading, error, profile, discovery,
-    setProfile, setDiscovery, saveProfile, saveDiscovery, saveMoodOptions,
+    setProfile, saveProfile,
   } = useOnboarding();
   const [stepIndex, setStepIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -47,32 +45,8 @@ export default function OnboardingPage({ onComplete, onEditProfile }: Props) {
     } finally { setSaving(false); }
   }
 
-  async function persistDiscovery() {
-    if (!discovery) return;
-    setStepError(''); setSaving(true);
-    try {
-      await saveDiscovery();
-      setStepIndex(i => i + 1);
-    } catch (err) {
-      setStepError(err instanceof Error ? err.message : 'Could not save.');
-    } finally { setSaving(false); }
-  }
-
-  async function persistMood() {
-    setStepError(''); setSaving(true);
-    try {
-      const opts = (profile.mood_wheel_options ?? []) as MoodWheelOption[];
-      await saveMoodOptions(opts);
-      setStepIndex(i => i + 1);
-    } catch (err) {
-      setStepError(err instanceof Error ? err.message : 'Could not save.');
-    } finally { setSaving(false); }
-  }
-
   function goNext() {
     if (['identity', 'name', 'location', 'bio', 'photo'].includes(currentStep)) void persistAndAdvance();
-    else if (currentStep === 'discovery') void persistDiscovery();
-    else if (currentStep === 'mood') void persistMood();
     else setStepIndex(i => Math.min(i + 1, STEP_ORDER.length - 1));
   }
 
@@ -95,10 +69,8 @@ export default function OnboardingPage({ onComplete, onEditProfile }: Props) {
         <OnboardingStepRenderer
           step={currentStep}
           profile={profile}
-          discovery={discovery as DiscoverySettings}
           userId={user?.id}
           onProfileChange={(p: OnboardingProfile) => setProfile(p)}
-          onDiscoveryChange={(s: DiscoverySettings) => setDiscovery(s)}
           onAvatar={(url: string) => setProfile({ ...profile, avatar_url: url })}
           onError={setStepError}
           onNext={goNext}

@@ -11,6 +11,7 @@ import { ProfileGalleryEditor } from './ProfileGalleryEditor';
 import type { ProfilePhoto } from '../services/profilePhotos';
 import type { Profile } from '../types/profile.types';
 import { CONVERSATION_PREFS, INTENTION_OPTIONS } from '../constants/profileOptions';
+import { ConnectionProfileSection } from '../../connection/components/ConnectionProfileSection';
 
 type Props = {
   userId: string;
@@ -56,6 +57,7 @@ export function ProfileForm({ userId, profile, photos, saving, saved, error, onC
 
       <Card><Field label="Relationship intention"><div className="flex flex-wrap gap-2">{INTENTION_OPTIONS.map(option => <Pill key={option} active={profile.relationship_intention === option} onClick={() => onChange({ ...profile, relationship_intention: option })}>{option}</Pill>)}</div></Field></Card>
       <Card><Field label="Conversation preferences"><div className="flex flex-wrap gap-2">{CONVERSATION_PREFS.map(pref => <Pill key={pref} active={(profile.conversation_preferences ?? []).includes(pref)} onClick={() => toggleConvPref(pref)}>{pref}</Pill>)}</div></Field></Card>
+      <ConnectionProfileSection userId={userId} />
       <Card><Field label="Photos"><ProfileGalleryEditor userId={userId} photos={photos} onUploaded={onPhotosUploaded} onError={onError} /><p className="mt-2 text-xs text-[#333333]/40">Add up to three photos shown to other people.</p></Field></Card>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       <div className="flex items-center justify-between border-t border-[#e8e0d0] pt-4">

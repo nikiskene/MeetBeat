@@ -1,172 +1,164 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import RetryError from '../shared/components/RetryError';
 import ExplorePage from '../features/discovery/pages/ExplorePage';
 import { ActiveMood } from '../features/settings/components/ActiveMood';
 import { MoodMachine } from '../features/settings/components/MoodMachine';
 import { MoodWheelDisabled, MoodWheelLoading } from '../features/settings/components/MoodWheelStates';
 import {
-  DEFAULT_MOOD_WHEEL_OPTIONS,
   MOOD_WHEEL_OPTIONS,
+  normalizeMoodWheelOptions,
   type MoodWheelOption,
 } from '../features/settings/constants/moodWheelOptions';
-import { getCurrentMood, getMoodRemainingMs } from '../features/settings/services/localMood';
+import {
+  fetchActiveBeat,
+  formatActiveBeatRemaining,
+  getCachedActiveBeat,
+  selectActiveBeat,
+  type ActiveBeat,
+} from '../features/settings/services/activeBeat';
+import { fetchDiscoverySettings } from '../features/settings/services/discoverySettings';
 import { useCmsGroup, pick } from '../features/cms/hooks/useCmsGroup';
-import { confirmMoodSelection, formatRemaining, getVisibleOptions, resetMood } from '../features/settings/utils/moodWheelHelpers';
 
-const WHEEL_FALLBACK: Record<string, string> = {
-  'wheel.question': 'What would feel good today?',
-  'wheel.confirm': 'Choose this beat',
-  'wheel.random': 'Surprise me',
-  'wheel.instruction': 'Scroll, use the arrows, or let chance choose.',
+const FALLBACK = {
+  question: 'What would feel good today?',
+  confirm: 'Choose this BEAT',
+  random: 'Surprise me',
+  instruction: 'Spin, scroll or use the arrows to explore.',
 };
 
-type TodayPageProps = { onOpenConversation: (matchedUserId: string) => void };
+type Props = { onOpenConversation: (matchedUserId: string) => void };
 
-export default function TodayPage({ onOpenConversation }: TodayPageProps) {
+export default function TodayPage({ onOpenConversation }: Props) {
   const { user } = useAuth();
-  const [enabledOptions, setEnabledOptions] = useState<MoodWheelOption[]>(DEFAULT_MOOD_WHEEL_OPTIONS);
-  const [currentMood, setCurrentMood] = useState<MoodWheelOption | null>(null);
+  const [enabled, setEnabled] = useState<MoodWheelOption[]>(
+    MOOD_WHEEL_OPTIONS.map(option => option.value),
+  );
+  const [active, setActive] = useState<ActiveBeat | null>(() => getCachedActiveBeat());
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
-  const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const { content } = useCmsGroup('wheel');
 
   useEffect(() => {
     if (!user) return;
-    const userId = user.id;
-    async function load() {
-      try {
-        setLoading(true);
-        setError('');
-        setCurrentMood(getCurrentMood());
-        setRemainingMs(getMoodRemainingMs());
-        const { data, error: loadError } = await supabase
-          .from('profiles')
-          .select('mood_wheel_options')
-          .eq('id', userId)
-          .maybeSingle();
-        if (loadError) throw loadError;
-        setEnabledOptions(
-          (data?.mood_wheel_options as MoodWheelOption[] | null) ??
-            DEFAULT_MOOD_WHEEL_OPTIONS,
-        );
-      } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'Your daily beat could not be loaded.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    void load();
+    let mounted = true;
+    Promise.all([fetchActiveBeat(user.id), fetchDiscoverySettings(user.id)])
+      .then(([beat, settings]) => {
+        if (!mounted) return;
+        setActive(beat);
+        setEnabled(normalizeMoodWheelOptions(settings.mood_wheel_options));
+      })
+      .catch(reason => {
+        if (mounted) setError(reason instanceof Error ? reason.message : 'Your current BEAT could not be loaded.');
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [retryKey, user]);
 
-  const visibleOptions = useMemo(() => getVisibleOptions(enabledOptions), [enabledOptions]);
-  const selectedOption = visibleOptions[selectedIndex];
+  const options = useMemo(
+    () => MOOD_WHEEL_OPTIONS.filter(option => enabled.includes(option.value)),
+    [enabled],
+  );
+  const selected = options[selectedIndex] ?? options[0];
+  const activeOption = MOOD_WHEEL_OPTIONS.find(option => option.value === active?.beat);
+  const showWheel = !active || editing;
 
-  function moveSelection(direction: number) {
-    if (spinning || visibleOptions.length === 0) return;
-    setSelectedIndex(c => (c + direction + visibleOptions.length) % visibleOptions.length);
-  }
-
-  function handleWheel(event: React.WheelEvent<HTMLDivElement>) {
-    event.preventDefault();
-    moveSelection(event.deltaY > 0 ? 1 : -1);
-  }
-
-  function confirmSelection() {
-    const mood = confirmMoodSelection(selectedOption);
-    if (mood) {
-      setCurrentMood(mood);
-      setRemainingMs(getMoodRemainingMs());
-      setEditing(false);
-    }
-  }
-
-  function handleReset() {
-    const result = resetMood();
-    setCurrentMood(result.currentMood);
-    setRemainingMs(result.remainingMs);
-    setEditing(false);
-    setSelectedIndex(0);
-  }
-
-  function editMood() {
-    const idx = visibleOptions.findIndex(o => o.value === currentMood);
-    setSelectedIndex(idx >= 0 ? idx : 0);
-    setEditing(true);
+  function move(direction: number) {
+    if (spinning || options.length === 0) return;
+    setSelectedIndex(index => (index + direction + options.length) % options.length);
   }
 
   function randomRoll() {
-    if (spinning || visibleOptions.length < 2) return;
-    setSpinning(true);
-    const finalIndex = Math.floor(Math.random() * visibleOptions.length);
-    const steps = 16 + Math.floor(Math.random() * 8);
-    let step = 0;
-    function advance() {
-      setSelectedIndex(c => (c + 1) % visibleOptions.length);
-      step += 1;
-      if (step >= steps) { setSelectedIndex(finalIndex); setSpinning(false); return; }
-      window.setTimeout(advance, 55 + step * 9);
+    if (spinning || options.length < 2) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSelectedIndex(Math.floor(Math.random() * options.length));
+      return;
     }
+    setSpinning(true);
+    const destination = Math.floor(Math.random() * options.length);
+    let step = 0;
+    const advance = () => {
+      setSelectedIndex(index => (index + 1) % options.length);
+      step += 1;
+      if (step >= 12) {
+        setSelectedIndex(destination);
+        setSpinning(false);
+      } else window.setTimeout(advance, 55);
+    };
     advance();
+  }
+
+  async function confirm() {
+    if (!user || !selected || spinning) return;
+    setSaving(true);
+    setError('');
+    try {
+      setActive(await selectActiveBeat(user.id, selected.value));
+      setEditing(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Your BEAT was not saved.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <MoodWheelLoading />;
 
-  const activeOption = MOOD_WHEEL_OPTIONS.find(o => o.value === currentMood);
-  const showMachine = !currentMood || editing;
-  const questionLabel = pick(content, 'wheel.question', WHEEL_FALLBACK['wheel.question']);
-  const confirmLabel = pick(content, 'wheel.confirm', WHEEL_FALLBACK['wheel.confirm']);
-  const randomLabel = pick(content, 'wheel.random', WHEEL_FALLBACK['wheel.random']);
-  const instructionLabel = pick(content, 'wheel.instruction', WHEEL_FALLBACK['wheel.instruction']);
-
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8 md:px-12">
+    <div className="mx-auto max-w-2xl px-5 py-8 md:px-10">
       <header className="mb-8">
         <p className="mb-1 text-xs font-medium uppercase tracking-[0.22em] text-[#b07d6c]">Today</p>
-        <h1 className="text-3xl font-light text-[#141414]">{showMachine ? questionLabel : 'Your daily beat'}</h1>
-        <p className="mt-3 max-w-lg text-sm leading-relaxed text-[#333333]/55">
-          {showMachine ? instructionLabel : 'Your choice remains active on this device for 24 hours.'}
-        </p>
+        <h1 className="text-3xl font-light text-[#141414]">
+          {showWheel ? pick(content, 'wheel.question', FALLBACK.question) : 'People on your wavelength'}
+        </h1>
+        {showWheel && <p className="mt-3 text-sm text-[#333333]/55">{pick(content, 'wheel.instruction', FALLBACK.instruction)}</p>}
       </header>
 
-      {error && <RetryError message={error} onRetry={() => setRetryKey(k => k + 1)} />}
-
-      {!error && visibleOptions.length === 0 && <MoodWheelDisabled />}
-
-      {!error && showMachine && visibleOptions.length > 0 && (
+      {error && <RetryError message={error} onRetry={() => setRetryKey(key => key + 1)} />}
+      {!error && options.length === 0 && <MoodWheelDisabled />}
+      {!error && showWheel && selected && (
         <MoodMachine
-          label={selectedOption?.label ?? ''}
-          spinning={spinning}
-          onPrevious={() => moveSelection(-1)}
-          onNext={() => moveSelection(1)}
-          onWheel={handleWheel}
+          label={selected.label}
+          answer={selected.answer}
+          description={selected.description}
+          spinning={spinning || saving}
+          onPrevious={() => move(-1)}
+          onNext={() => move(1)}
+          onWheel={event => { event.preventDefault(); move(event.deltaY > 0 ? 1 : -1); }}
           onRandom={randomRoll}
-          onConfirm={confirmSelection}
-          confirmLabel={confirmLabel}
-          randomLabel={randomLabel}
-          instructionLabel={instructionLabel}
+          onConfirm={() => void confirm()}
+          confirmLabel={saving ? 'Saving…' : pick(content, 'wheel.confirm', FALLBACK.confirm)}
+          randomLabel={pick(content, 'wheel.random', FALLBACK.random)}
+          instructionLabel={pick(content, 'wheel.instruction', FALLBACK.instruction)}
         />
       )}
 
-      {!error && !showMachine && (
-        <ActiveMood
-          label={activeOption?.label ?? 'Today'}
-          remainingLabel={formatRemaining(remainingMs)}
-          onEdit={editMood}
-          onReset={handleReset}
-        />
-      )}
-
-      {!error && currentMood && !editing && (
-        <section className="mt-12 border-t border-[#e8e0d0] pt-10">
-          <ExplorePage onMatch={onOpenConversation} embedded />
-        </section>
+      {!error && !showWheel && active && activeOption && (
+        <>
+          <ActiveMood
+            label={activeOption.label}
+            description={activeOption.description}
+            remainingLabel={formatActiveBeatRemaining(active.expires_at)}
+            onEdit={() => {
+              const index = options.findIndex(option => option.value === active.beat);
+              setSelectedIndex(index >= 0 ? index : 0);
+              setEditing(true);
+            }}
+          />
+          <section className="mt-12 border-t border-[#e8e0d0] pt-10">
+            <ExplorePage
+              beat={activeOption}
+              onChangeBeat={() => setEditing(true)}
+              onMatch={onOpenConversation}
+              embedded
+            />
+          </section>
+        </>
       )}
     </div>
   );

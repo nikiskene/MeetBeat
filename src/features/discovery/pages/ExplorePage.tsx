@@ -7,7 +7,7 @@ import ErrorMessage from '../../../shared/components/ErrorMessage';
 import LoadingSpinner from '../../../shared/components/LoadingSpinner';
 import PageHeader from '../../../shared/components/PageHeader';
 import RetryError from '../../../shared/components/RetryError';
-import { getCurrentMood } from '../../settings/services/localMood';
+import type { MoodWheelItem } from '../../settings/constants/moodWheelOptions';
 import { MatchFlashOverlay } from '../components/MatchFlashOverlay';
 import { ProfileCard } from '../components/ProfileCard';
 import {
@@ -18,10 +18,12 @@ import {
 
 type Props = {
   onMatch?: (matchedUserId: string) => void;
+  beat?: MoodWheelItem;
+  onChangeBeat?: () => void;
   embedded?: boolean;
 };
 
-export default function ExplorePage({ onMatch, embedded = false }: Props) {
+export default function ExplorePage({ onMatch, beat, onChangeBeat, embedded = false }: Props) {
   const { user } = useAuth();
 
   const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
@@ -37,7 +39,7 @@ export default function ExplorePage({ onMatch, embedded = false }: Props) {
     setLoading(true);
     setError('');
     try {
-      setCandidates(await fetchCandidates(user.id, getCurrentMood()));
+      setCandidates(await fetchCandidates());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load profiles.');
     } finally {
@@ -140,11 +142,13 @@ export default function ExplorePage({ onMatch, embedded = false }: Props) {
     <div className={embedded ? "w-full" : "mx-auto max-w-5xl px-6 py-8 md:px-12"}>
       <PageHeader
         eyebrow={embedded ? "Today" : "Discover"}
-        title={embedded ? "Available profiles" : "Explore"}
+        title={embedded && beat ? `People open to ${beat.label} today` : "Explore"}
         subtitle={
           loading
-            ? 'Finding people who fit your preferences.'
-            : `${candidates.length} eligible ${candidates.length === 1 ? 'profile' : 'profiles'}`
+            ? 'Finding people on your wavelength…'
+            : embedded
+              ? 'They also fit your current age, gender and distance preferences.'
+              : `${candidates.length} eligible ${candidates.length === 1 ? 'profile' : 'profiles'}`
         }
       />
 
@@ -169,13 +173,15 @@ export default function ExplorePage({ onMatch, embedded = false }: Props) {
         </div>
       ) : (
         <div className="rounded-[2rem] border border-[#e8e0d0] bg-white px-6 py-14 text-center shadow-sm">
-          <h2 className="text-xl font-light text-[#141414]">
-            You’re all caught up.
-          </h2>
+          <h2 className="text-xl font-light text-[#141414]">No one nearby has chosen this BEAT yet.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#333333]/60">
-            There are no new profiles matching your preferences right now.
-            Check back later or broaden your discovery settings.
+            Try another BEAT, adjust your discovery preferences or check again later.
           </p>
+          {onChangeBeat && (
+            <button type="button" onClick={onChangeBeat} className="mt-6 rounded-full bg-[#171513] px-6 py-3 text-sm font-medium text-white">
+              Choose another BEAT
+            </button>
+          )}
         </div>
       )}
     </div>

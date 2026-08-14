@@ -7,7 +7,11 @@ import TextInput from '../../../shared/components/TextInput';
 import { MOOD_WHEEL_OPTIONS } from '../constants/moodWheelOptions';
 import type { DiscoverySettings } from '../types/settings.types';
 
-const INTEREST_OPTIONS = ['Women', 'Men', 'Non-binary people'];
+const INTEREST_OPTIONS = [
+  { value: 'woman', label: 'Women' },
+  { value: 'man', label: 'Men' },
+  { value: 'non_binary', label: 'Non-binary people' },
+];
 
 type Props = {
   settings: DiscoverySettings;
@@ -58,11 +62,11 @@ export function DiscoverySettingsForm({
         <div className="flex flex-wrap gap-2 mt-4">
           {INTEREST_OPTIONS.map(option => (
             <Pill
-              key={option}
-              active={settings.interested_in.includes(option)}
-              onClick={() => toggleInterest(option)}
+              key={option.value}
+              active={settings.interested_in.includes(option.value)}
+              onClick={() => toggleInterest(option.value)}
             >
-              {option}
+              {option.label}
             </Pill>
           ))}
         </div>
@@ -121,11 +125,11 @@ export function DiscoverySettingsForm({
 
       <Card>
         <h2 className="text-sm font-medium text-[#141414]">
-          Daily mood wheel
+          Your BEAT wheel
         </h2>
 
         <p className="mt-2 text-sm leading-relaxed text-[#333333]/60">
-          Choose which intentions may appear on your daily mood wheel.
+          Choose which experiences can appear on your wheel. Keep at least one active.
         </p>
 
         <div className="flex flex-wrap gap-2 mt-4">
@@ -134,6 +138,7 @@ export function DiscoverySettingsForm({
               key={option.value}
               active={settings.mood_wheel_options.includes(option.value)}
               onClick={() => toggleMoodOption(option.value)}
+              disabled={settings.mood_wheel_options.length === 1 && settings.mood_wheel_options.includes(option.value)}
             >
               {option.label}
             </Pill>

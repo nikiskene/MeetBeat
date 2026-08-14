@@ -23,14 +23,8 @@ export type DiscoveryDecisionResult = {
   isMatch: boolean;
 };
 
-export async function fetchCandidates(
-  userId: string,
-  mood: string | null
-): Promise<DiscoveryCandidate[]> {
-  const { data, error } = await supabase.rpc('get_discovery_candidates', {
-    p_user_id: userId,
-    p_mood: mood,
-  });
+export async function fetchCandidates(): Promise<DiscoveryCandidate[]> {
+  const { data, error } = await supabase.rpc('get_discovery_candidates_v2');
 
   if (error) throw error;
 
