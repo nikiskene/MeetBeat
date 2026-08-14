@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key>
+    <string>BEAT</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.iacy.beat</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>beat</string>
+            </array>
+        </dict>
+    </array>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.social-networking</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>BEAT uses your location to show regional community activity and nearby profiles.</string>
+    <key>SUPABASE_ANON_KEY</key>
+    <string>$(VITE_SUPABASE_ANON_KEY)</string>
+    <key>SUPABASE_URL</key>
+    <string>$(VITE_SUPABASE_URL)</string>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Inter-Variable.ttf</string>
+        <string>Inter-Italic-Variable.ttf</string>
+    </array>
+</dict>
+</plist>
