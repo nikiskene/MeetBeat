@@ -90,6 +90,9 @@ export function isMoodWheelOption(value: string): value is MoodWheelOption {
 }
 
 export function normalizeMoodWheelOptions(values?: string[] | null): MoodWheelOption[] {
-  const valid = (values ?? []).filter(isMoodWheelOption);
-  return valid.length > 0 ? Array.from(new Set(valid)) : DEFAULT_MOOD_WHEEL_OPTIONS;
+  if (!values?.length || !values.every(isMoodWheelOption)) {
+    return DEFAULT_MOOD_WHEEL_OPTIONS;
+  }
+
+  return Array.from(new Set(values));
 }
